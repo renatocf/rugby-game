@@ -21,6 +21,9 @@ struct game {
 
   size_t max_number_spies;
 
+  PlayerStrategy execute_attacker_strategy;
+  PlayerStrategy execute_defender_strategy;
+
   Player attacker;
   Player defender;
 
@@ -40,19 +43,28 @@ bool has_spy_exceeded_max_number_uses(Spy opponent_spy,
 bool has_defender_captured_attacker(Player defender, Player attacker);
 bool has_attacker_arrived_end_field(Field field, Player attacker);
 
-void move_attacker(Field field, Player attacker, Spy defender_spy);
-void move_defender(Field field, Player defender, Spy attacker_spy);
+void move_player(Field field,
+                 Player player,
+                 Spy opponent_spy,
+                 PlayerStrategy execute_player_strategy);
 
 /*----------------------------------------------------------------------------*/
 /*                              PUBLIC FUNCTIONS                              */
 /*----------------------------------------------------------------------------*/
 
-Game new_game(dimension_t field_dimension, size_t max_number_spies) {
+Game new_game(
+    dimension_t field_dimension,
+    size_t max_number_spies,
+    PlayerStrategy execute_attacker_strategy,
+    PlayerStrategy execute_defender_strategy) {
   Game game = malloc(sizeof(*game));
 
   game->field = new_field(field_dimension);
 
   game->max_number_spies = max_number_spies;
+
+  game->execute_attacker_strategy = execute_attacker_strategy;
+  game->execute_defender_strategy = execute_defender_strategy;
 
   game->attacker = new_player('A');
   game->defender = new_player('D');
@@ -83,6 +95,9 @@ void delete_game(Game game) {
   delete_player(game->attacker);
   game->attacker = NULL;
 
+  game->execute_defender_strategy = NULL;
+  game->execute_attacker_strategy = NULL;
+
   game->max_number_spies = 0;
 
   delete_field(game->field);
@@ -110,8 +125,15 @@ void play_game(Game game, size_t max_turns) {
   for (size_t turn = 0; turn < max_turns; turn++) {
     printf("Turn %ld\n", turn+1);
 
-    move_attacker(game->field, game->attacker, game->defender_spy);
-    move_defender(game->field, game->defender, game->attacker_spy);
+    move_player(game->field,
+                game->attacker,
+                game->defender_spy,
+                game->execute_attacker_strategy);
+
+    move_player(game->field,
+                game->defender,
+                game->attacker_spy,
+                game->execute_defender_strategy);
 
     print_game(game);
 
@@ -205,20 +227,16 @@ bool has_attacker_arrived_end_field(Field field, Player attacker) {
 
 /*----------------------------------------------------------------------------*/
 
-void move_attacker(Field field, Player attacker, Spy defender_spy) {
-  UNUSED(defender_spy); // TODO: remove if using variable
+void move_player(Field field,
+                 Player player,
+                 Spy opponent_spy,
+                 PlayerStrategy execute_player_strategy) {
+  position_t player_position = get_player_position(player);
 
-  // TODO: Implement Attacker logic here
-  move_player_in_field(field, attacker, DIR_RIGHT);
-}
+  direction_t player_direction
+    = execute_player_strategy(player_position, opponent_spy);
 
-/*----------------------------------------------------------------------------*/
-
-void move_defender(Field field, Player defender, Spy attacker_spy) {
-  UNUSED(attacker_spy); // TODO: remove if using variable
-
-  // TODO: Implement Defender logic here
-  move_player_in_field(field, defender, DIR_LEFT);
+  move_player_in_field(field, player, player_direction);
 }
 
 /*----------------------------------------------------------------------------*/
