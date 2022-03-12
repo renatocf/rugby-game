@@ -14,20 +14,18 @@
 
 struct field {
   dimension_t dimension;
-  Player** grid;
+  Item** grid;
 };
 
 /*----------------------------------------------------------------------------*/
 /*                          PRIVATE FUNCTIONS HEADERS                         */
 /*----------------------------------------------------------------------------*/
 
-Player** allocate_field_grid(dimension_t dimension);
-void free_field_grid(Player** grid, dimension_t dimension);
+Item** allocate_field_grid(dimension_t dimension);
+void free_field_grid(Item** grid, dimension_t dimension);
 
-bool position_is_border_of_field(Field field, position_t p);
-bool position_is_beyond_border_of_field(Field field, position_t p);
-
-void print_player_in_field(Player player);
+bool position_is_beyond_limit_of_field(Field field, position_t p);
+void print_item_in_field(Item item);
 
 /*----------------------------------------------------------------------------*/
 /*                              PUBLIC FUNCTIONS                              */
@@ -91,13 +89,8 @@ void print_field_grid(Field field) {
 
   for (size_t i = 0; i < field->dimension.height; i++) {
     for (size_t j = 0; j < field->dimension.width; j++) {
-      position_t position = { i, j };
-
       putchar('|');
-      if (position_is_border_of_field(field, position))
-        putchar('X');
-      else
-        print_player_in_field(field->grid[i][j]);
+      print_item_in_field(field->grid[i][j]);
     }
     putchar('|');
     putchar('\n');
@@ -107,39 +100,44 @@ void print_field_grid(Field field) {
 
 /*----------------------------------------------------------------------------*/
 
-void add_player_to_field(Field field, Player player, position_t position) {
-  if (field == NULL || player == NULL) return;
+void add_item_to_field(Field field, Item item, position_t position) {
+  if (field == NULL || item == NULL) return;
 
-  if (position_is_beyond_border_of_field(field, position)) {
-    fprintf(stderr, "ERROR: Player '%c' must be within the borders of the field!\n",
-        get_player_symbol(player));
+  if (position_is_beyond_limit_of_field(field, position)) {
+    fprintf(stderr, "ERROR: Item '%c' must be within limits of the field!\n",
+        get_item_symbol(item));
     return;
   }
 
-  field->grid[position.i][position.j] = player;
-  set_player_position(player, position);
+  field->grid[position.i][position.j] = item;
+  set_item_position(item, position);
 }
 
 /*----------------------------------------------------------------------------*/
 
-void move_player_in_field(Field field, Player player, direction_t direction) {
-  if (field == NULL || player == NULL) return;
+void move_item_in_field(Field field, Item item, direction_t direction) {
+  if (field == NULL || item == NULL) return;
 
-  position_t player_position = get_player_position(player);
+  position_t item_position = get_item_position(item);
 
-  // Given how players are added to the field, their position
-  // should never be in the border of the field
-  assert(!position_is_border_of_field(field, player_position));
+  // Given how items are added to the field, their position
+  // should never be beyond the limits of the field
+  assert(!position_is_beyond_limit_of_field(field, item_position));
 
-  position_t new_position = move_position(get_player_position(player), direction);
+  if (!is_item_movable(item)) {
+    fprintf(stderr, "WARNING: Item is not movable!\n");
+    return;
+  }
+
+  position_t new_position = move_position(get_item_position(item), direction);
 
   // Item cannot be moved if position is already occupied
-  if (position_is_border_of_field(field, new_position)) return;
+  if (field->grid[new_position.i][new_position.j] != NULL) return;
 
   // Change current position in the grid
-  field->grid[new_position.i][new_position.j] = player;
-  field->grid[player_position.i][player_position.j] = NULL;
-  set_player_position(player, new_position);
+  field->grid[new_position.i][new_position.j] = item;
+  field->grid[item_position.i][item_position.j] = NULL;
+  set_item_position(item, new_position);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -147,8 +145,8 @@ void move_player_in_field(Field field, Player player, direction_t direction) {
 /*----------------------------------------------------------------------------*/
 
 // Allocate field's grid as C-matrix in the heap
-Player** allocate_field_grid(dimension_t dimension) {
-  Player** grid = malloc(dimension.height * sizeof(*grid));
+Item** allocate_field_grid(dimension_t dimension) {
+  Item** grid = malloc(dimension.height * sizeof(*grid));
   for (size_t i = 0; i < dimension.height; i++) {
     grid[i] = malloc(dimension.width * sizeof(*grid[i]));
     for (size_t j = 0; j < dimension.width; j++) {
@@ -162,7 +160,7 @@ Player** allocate_field_grid(dimension_t dimension) {
 /*----------------------------------------------------------------------------*/
 
 // Free field's grid as C-matrix in the heap
-void free_field_grid(Player** grid, dimension_t dimension) {
+void free_field_grid(Item** grid, dimension_t dimension) {
   // This function should always be used on an initialized field,
   // whose grid was allocated previously
   assert(grid != NULL);
@@ -177,27 +175,20 @@ void free_field_grid(Player** grid, dimension_t dimension) {
 
 /*----------------------------------------------------------------------------*/
 
-bool position_is_border_of_field(Field field, position_t p) {
+bool position_is_beyond_limit_of_field(Field field, position_t p) {
   if (field == NULL) return false;
-  return p.i == 0 || p.j == 0 || p.i == field->dimension.height-1 || p.j == field->dimension.width-1;
+  return p.i > field->dimension.height-1 || p.j > field->dimension.width-1;
 }
 
 /*----------------------------------------------------------------------------*/
 
-bool position_is_beyond_border_of_field(Field field, position_t p) {
-  if (field == NULL) return false;
-  return p.i == 0 || p.j == 0 || p.i > field->dimension.height-1 || p.j > field->dimension.width-1;
-}
-
-/*----------------------------------------------------------------------------*/
-
-void print_player_in_field(Player player) {
-  if (player == NULL) {
+void print_item_in_field(Item item) {
+  if (item == NULL) {
     putchar(' ');
     return;
   }
 
-  putchar(get_player_symbol(player));
+  putchar(get_item_symbol(item));
 }
 
 /*----------------------------------------------------------------------------*/

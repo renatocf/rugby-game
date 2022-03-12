@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 // Internal headers
-#include "player.h"
+#include "item.h"
 
 // Main header
 #include "spy.h"
@@ -12,7 +12,7 @@
 /*----------------------------------------------------------------------------*/
 
 struct spy {
-  Player player;
+  Item item;
   size_t number_uses;
 };
 
@@ -20,10 +20,10 @@ struct spy {
 /*                              PUBLIC FUNCTIONS                              */
 /*----------------------------------------------------------------------------*/
 
-Spy new_spy(Player player) {
+Spy new_spy(Item item) {
   Spy spy = malloc(sizeof(*spy));
 
-  spy->player = player;
+  spy->item = item;
   spy->number_uses = 0;
 
   return spy;
@@ -35,7 +35,7 @@ void delete_spy(Spy spy) {
   if (spy == NULL) return;
 
   spy->number_uses = 0;
-  spy->player = NULL;
+  spy->item = NULL;
 
   free(spy);
 }
@@ -45,10 +45,10 @@ void delete_spy(Spy spy) {
 position_t get_spy_position(Spy spy) {
   if (spy == NULL) return (position_t) { 0, 0 };
 
-  position_t player_position = get_player_position(spy->player);
+  position_t item_position = get_item_position(spy->item);
   spy->number_uses++;
 
-  return player_position;
+  return item_position;
 }
 
 /*----------------------------------------------------------------------------*/

@@ -3,14 +3,15 @@
 #include <stdlib.h>
 
 // Main header
-#include "player.h"
+#include "item.h"
 
 /*----------------------------------------------------------------------------*/
 /*                        PRIVATE STRUCT IMPLEMENTATION                       */
 /*----------------------------------------------------------------------------*/
 
-struct player {
+struct item {
   char symbol;
+  bool is_movable;
   position_t position;
 };
 
@@ -18,50 +19,58 @@ struct player {
 /*                              PUBLIC FUNCTIONS                              */
 /*----------------------------------------------------------------------------*/
 
-Player new_player(char symbol) {
-  Player player = malloc(sizeof(*player));
+Item new_item(char symbol, bool is_movable) {
+  Item item = malloc(sizeof(*item));
 
-  player->symbol = symbol;
-  player->position = (position_t){ 0, 0 };
+  item->symbol = symbol;
+  item->is_movable = is_movable;
+  item->position = (position_t){ 0, 0 };
 
-  return player;
+  return item;
 }
 
 /*----------------------------------------------------------------------------*/
 
-void delete_player(Player player) {
-  if (player == NULL) return;
+void delete_item(Item item) {
+  if (item == NULL) return;
 
-  free(player);
-  player = NULL;
+  free(item);
+  item = NULL;
 }
 
 /*----------------------------------------------------------------------------*/
 
-char get_player_symbol(Player player) {
-  if (player == NULL) return '\0';
-  return player->symbol;
+bool is_item_movable(Item item) {
+  if (item == NULL) return false;
+  return item->is_movable;
 }
 
 /*----------------------------------------------------------------------------*/
 
-position_t get_player_position(Player player) {
-  if (player == NULL) return (position_t) { 0, 0 };
-  return player->position;
+char get_item_symbol(Item item) {
+  if (item == NULL) return '\0';
+  return item->symbol;
 }
 
 /*----------------------------------------------------------------------------*/
 
-void set_player_position(Player player, position_t new_position) {
-  if (player == NULL) return;
-  player->position = new_position;
+position_t get_item_position(Item item) {
+  if (item == NULL) return (position_t) { 0, 0 };
+  return item->position;
 }
 
 /*----------------------------------------------------------------------------*/
 
-bool equal_players(Player p1, Player p2) {
+void set_item_position(Item item, position_t new_position) {
+  if (item == NULL) return;
+  item->position = new_position;
+}
+
+/*----------------------------------------------------------------------------*/
+
+bool equal_items(Item p1, Item p2) {
   if (p1 == NULL || p2 == NULL) return false;
-  return p1->symbol == p2->symbol;
+  return p1 == p2;
 }
 
 /*----------------------------------------------------------------------------*/

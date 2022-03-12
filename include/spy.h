@@ -5,19 +5,19 @@
 #include <stddef.h>
 
 // Internal headers
-#include "player.h"
+#include "item.h"
 #include "position.h"
 
 // Structs
 
 /**
- * A spy allows retrieving the position of a player and counts
+ * A spy allows retrieving the position of a item and counts
  * the number of accesses.
  */
 typedef struct spy* Spy;
 
 // Functions
-Spy new_spy(Player player);
+Spy new_spy(Item item);
 void delete_spy(Spy spy);
 
 position_t get_spy_position(Spy spy);

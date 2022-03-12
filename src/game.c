@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 // Internal headers
+#include "field.h"
 #include "spy.h"
 
 // Main header
@@ -24,8 +25,9 @@ struct game {
   PlayerStrategy execute_attacker_strategy;
   PlayerStrategy execute_defender_strategy;
 
-  Player attacker;
-  Player defender;
+  Item attacker;
+  Item defender;
+  Item obstacle;
 
   Spy attacker_spy;
   Spy defender_spy;
@@ -35,18 +37,19 @@ struct game {
 /*                          PRIVATE FUNCTIONS HEADERS                         */
 /*----------------------------------------------------------------------------*/
 
-void set_attacker_in_field(Field field, Player attacker);
-void set_defender_in_field(Field field, Player defender);
+void set_attacker_in_field(Field field, Item attacker);
+void set_defender_in_field(Field field, Item defender);
+void set_obstacles_in_field(Field field, Item obstacle);
 
 bool has_spy_exceeded_max_number_uses(Spy opponent_spy,
                                       size_t max_number_spies);
-bool has_defender_captured_attacker(Player defender, Player attacker);
-bool has_attacker_arrived_end_field(Field field, Player attacker);
+bool has_defender_captured_attacker(Item defender, Item attacker);
+bool has_attacker_arrived_end_field(Field field, Item attacker);
 
-void move_player(Field field,
-                 Player player,
-                 Spy opponent_spy,
-                 PlayerStrategy execute_player_strategy);
+void move_item(Field field,
+               Item item,
+               Spy opponent_spy,
+               PlayerStrategy execute_item_strategy);
 
 /*----------------------------------------------------------------------------*/
 /*                              PUBLIC FUNCTIONS                              */
@@ -66,14 +69,16 @@ Game new_game(
   game->execute_attacker_strategy = execute_attacker_strategy;
   game->execute_defender_strategy = execute_defender_strategy;
 
-  game->attacker = new_player('A');
-  game->defender = new_player('D');
+  game->attacker = new_item('A', true);
+  game->defender = new_item('D', true);
+  game->obstacle = new_item('X', false);
 
   game->attacker_spy = new_spy(game->attacker);
   game->defender_spy = new_spy(game->defender);
 
   set_attacker_in_field(game->field, game->attacker);
   set_defender_in_field(game->field, game->defender);
+  set_obstacles_in_field(game->field, game->obstacle);
 
   return game;
 }
@@ -89,10 +94,13 @@ void delete_game(Game game) {
   delete_spy(game->attacker_spy);
   game->attacker_spy = NULL;
 
-  delete_player(game->defender);
+  delete_item(game->obstacle);
+  game->obstacle = NULL;
+
+  delete_item(game->defender);
   game->defender = NULL;
 
-  delete_player(game->attacker);
+  delete_item(game->attacker);
   game->attacker = NULL;
 
   game->execute_defender_strategy = NULL;
@@ -125,15 +133,15 @@ void play_game(Game game, size_t max_turns) {
   for (size_t turn = 0; turn < max_turns; turn++) {
     printf("Turn %ld\n", turn+1);
 
-    move_player(game->field,
-                game->attacker,
-                game->defender_spy,
-                game->execute_attacker_strategy);
+    move_item(game->field,
+              game->attacker,
+              game->defender_spy,
+              game->execute_attacker_strategy);
 
-    move_player(game->field,
-                game->defender,
-                game->attacker_spy,
-                game->execute_defender_strategy);
+    move_item(game->field,
+              game->defender,
+              game->attacker_spy,
+              game->execute_defender_strategy);
 
     print_game(game);
 
@@ -172,7 +180,7 @@ void play_game(Game game, size_t max_turns) {
 /*                             PRIVATE FUNCTIONS                              */
 /*----------------------------------------------------------------------------*/
 
-void set_attacker_in_field(Field field, Player attacker) {
+void set_attacker_in_field(Field field, Item attacker) {
   if (field == NULL || attacker == NULL) return;
 
   dimension_t field_dimension = get_field_dimension(field);
@@ -180,12 +188,12 @@ void set_attacker_in_field(Field field, Player attacker) {
   position_t attacker_initial_position = {
     field_dimension.height / 2, 1 // Left side of field
   };
-  add_player_to_field(field, attacker, attacker_initial_position);
+  add_item_to_field(field, attacker, attacker_initial_position);
 }
 
 /*----------------------------------------------------------------------------*/
 
-void set_defender_in_field(Field field, Player defender) {
+void set_defender_in_field(Field field, Item defender) {
   if (field == NULL || defender == NULL) return;
 
   dimension_t field_dimension = get_field_dimension(field);
@@ -193,7 +201,35 @@ void set_defender_in_field(Field field, Player defender) {
   position_t defender_initial_position = {
     field_dimension.height / 2, field_dimension.width-2 // Right side of field
   };
-  add_player_to_field(field, defender, defender_initial_position);
+  add_item_to_field(field, defender, defender_initial_position);
+}
+
+/*----------------------------------------------------------------------------*/
+
+void set_obstacles_in_field(Field field, Item obstacle) {
+  dimension_t field_dimension = get_field_dimension(field);
+  size_t field_height = field_dimension.height;
+  size_t field_width = field_dimension.width;
+
+  for (size_t i = 0; i < field_height; i++) {
+    position_t left_border = { i, 0 };
+    add_item_to_field(field, obstacle, left_border);
+  }
+
+  for (size_t i = 0; i < field_height; i++) {
+    position_t right_border = { i, field_width-1 };
+    add_item_to_field(field, obstacle, right_border);
+  }
+
+  for (size_t j = 0; j < field_width; j++) {
+    position_t top_border = { 0, j };
+    add_item_to_field(field, obstacle, top_border);
+  }
+
+  for (size_t j = 0; j < field_width; j++) {
+    position_t bottom_border = { field_height-1, j };
+    add_item_to_field(field, obstacle, bottom_border);
+  }
 }
 
 /*----------------------------------------------------------------------------*/
@@ -205,21 +241,21 @@ bool has_spy_exceeded_max_number_uses(Spy opponent_spy,
 
 /*----------------------------------------------------------------------------*/
 
-bool has_defender_captured_attacker(Player defender, Player attacker) {
+bool has_defender_captured_attacker(Item defender, Item attacker) {
   if (attacker == NULL || defender == NULL) return false;
 
-  position_t attacker_position = get_player_position(attacker);
-  position_t defender_position = get_player_position(defender);
+  position_t attacker_position = get_item_position(attacker);
+  position_t defender_position = get_item_position(defender);
 
   return neighbor_positions(defender_position, attacker_position);
 }
 
 /*----------------------------------------------------------------------------*/
 
-bool has_attacker_arrived_end_field(Field field, Player attacker) {
+bool has_attacker_arrived_end_field(Field field, Item attacker) {
   if (field == NULL || attacker == NULL) return false;
 
-  position_t attacker_position = get_player_position(attacker);
+  position_t attacker_position = get_item_position(attacker);
   dimension_t field_dimension = get_field_dimension(field);
 
   return attacker_position.j == field_dimension.width - 1;
@@ -227,16 +263,16 @@ bool has_attacker_arrived_end_field(Field field, Player attacker) {
 
 /*----------------------------------------------------------------------------*/
 
-void move_player(Field field,
-                 Player player,
-                 Spy opponent_spy,
-                 PlayerStrategy execute_player_strategy) {
-  position_t player_position = get_player_position(player);
+void move_item(Field field,
+               Item item,
+               Spy opponent_spy,
+               PlayerStrategy execute_item_strategy) {
+  position_t item_position = get_item_position(item);
 
-  direction_t player_direction
-    = execute_player_strategy(player_position, opponent_spy);
+  direction_t item_direction
+    = execute_item_strategy(item_position, opponent_spy);
 
-  move_player_in_field(field, player, player_direction);
+  move_item_in_field(field, item, item_direction);
 }
 
 /*----------------------------------------------------------------------------*/
