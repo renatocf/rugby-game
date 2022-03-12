@@ -6,7 +6,7 @@
 #include "direction.h"
 #include "dimension.h"
 #include "field.h"
-#include "player.h"
+#include "item.h"
 #include "spy.h"
 
 // Structs

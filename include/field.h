@@ -7,12 +7,12 @@
 // Internal headers
 #include "dimension.h"
 #include "position.h"
-#include "player.h"
+#include "item.h"
 
 // Structs
 
 /**
- * A field is a 2D grid where a list of players play.
+ * A field is a 2D grid where a list of items are positioned.
  */
 typedef struct field* Field;
 
@@ -28,7 +28,7 @@ dimension_t get_field_dimension(Field field);
 void print_field_info(Field field);
 void print_field_grid(Field field);
 
-void add_player_to_field(Field field, Player player, position_t position);
-void move_player_in_field(Field field, Player player, direction_t direction);
+void add_item_to_field(Field field, Item item, position_t position);
+void move_item_in_field(Field field, Item item, direction_t direction);
 
 #endif // FIELD_H
