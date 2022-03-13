@@ -15,7 +15,7 @@
 typedef struct game* Game;
 
 // Functions
-Game new_game(dimension_t field_dimension);
+Game new_game(dimension_t field_dimension, size_t max_number_spies);
 void delete_game(Game game);
 void print_game(Game game);
 void play_game(Game game, size_t max_turns);

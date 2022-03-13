@@ -3,8 +3,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// Internal headers
+#include "spy.h"
+
 // Main header
 #include "game.h"
+
+// Macros
+#define UNUSED(x) (void)(x) // Auxiliary to avoid error of unused parameter
 
 /*----------------------------------------------------------------------------*/
 /*                        PRIVATE STRUCT IMPLEMENTATION                       */
@@ -13,8 +19,13 @@
 struct game {
   Field field;
 
+  size_t max_number_spies;
+
   Player attacker;
   Player defender;
+
+  Spy attacker_spy;
+  Spy defender_spy;
 };
 
 /*----------------------------------------------------------------------------*/
@@ -24,23 +35,30 @@ struct game {
 void set_attacker_in_field(Field field, Player attacker);
 void set_defender_in_field(Field field, Player defender);
 
+bool has_spy_exceeded_max_number_uses(Spy opponent_spy,
+                                      size_t max_number_spies);
 bool has_defender_captured_attacker(Player defender, Player attacker);
 bool has_attacker_arrived_end_field(Field field, Player attacker);
 
-void move_attacker(Field field, Player attacker);
-void move_defender(Field field, Player defender);
+void move_attacker(Field field, Player attacker, Spy defender_spy);
+void move_defender(Field field, Player defender, Spy attacker_spy);
 
 /*----------------------------------------------------------------------------*/
 /*                              PUBLIC FUNCTIONS                              */
 /*----------------------------------------------------------------------------*/
 
-Game new_game(dimension_t field_dimension) {
+Game new_game(dimension_t field_dimension, size_t max_number_spies) {
   Game game = malloc(sizeof(*game));
 
   game->field = new_field(field_dimension);
 
+  game->max_number_spies = max_number_spies;
+
   game->attacker = new_player('A');
   game->defender = new_player('D');
+
+  game->attacker_spy = new_spy(game->attacker);
+  game->defender_spy = new_spy(game->defender);
 
   set_attacker_in_field(game->field, game->attacker);
   set_defender_in_field(game->field, game->defender);
@@ -53,11 +71,19 @@ Game new_game(dimension_t field_dimension) {
 void delete_game(Game game) {
   if (game == NULL) return;
 
+  delete_spy(game->defender_spy);
+  game->defender_spy = NULL;
+
+  delete_spy(game->attacker_spy);
+  game->attacker_spy = NULL;
+
   delete_player(game->defender);
   game->defender = NULL;
 
   delete_player(game->attacker);
   game->attacker = NULL;
+
+  game->max_number_spies = 0;
 
   delete_field(game->field);
   game->field = NULL;
@@ -84,10 +110,26 @@ void play_game(Game game, size_t max_turns) {
   for (size_t turn = 0; turn < max_turns; turn++) {
     printf("Turn %ld\n", turn+1);
 
-    move_attacker(game->field, game->attacker);
-    move_defender(game->field, game->defender);
+    move_attacker(game->field, game->attacker, game->defender_spy);
+    move_defender(game->field, game->defender, game->attacker_spy);
 
     print_game(game);
+
+    if (has_spy_exceeded_max_number_uses(
+          game->defender_spy, game->max_number_spies)) {
+      printf("GAME OVER! Attacker cheated spying more than %ld %s!\n",
+             game->max_number_spies,
+             game->max_number_spies == 1UL ? "time" : "times");
+      return;
+    }
+
+    if (has_spy_exceeded_max_number_uses(
+          game->attacker_spy, game->max_number_spies)) {
+      printf("GAME OVER! Defender cheated spying more than %ld %s!\n",
+             game->max_number_spies,
+             game->max_number_spies == 1UL ? "time" : "times");
+      return;
+    }
 
     if (has_attacker_arrived_end_field(game->field, game->attacker)) {
       printf("GAME OVER! Attacker wins!\n");
@@ -134,6 +176,13 @@ void set_defender_in_field(Field field, Player defender) {
 
 /*----------------------------------------------------------------------------*/
 
+bool has_spy_exceeded_max_number_uses(Spy opponent_spy,
+                                      size_t max_number_spies) {
+  return get_spy_number_uses(opponent_spy) > max_number_spies;
+}
+
+/*----------------------------------------------------------------------------*/
+
 bool has_defender_captured_attacker(Player defender, Player attacker) {
   if (attacker == NULL || defender == NULL) return false;
 
@@ -156,14 +205,18 @@ bool has_attacker_arrived_end_field(Field field, Player attacker) {
 
 /*----------------------------------------------------------------------------*/
 
-void move_attacker(Field field, Player attacker) {
+void move_attacker(Field field, Player attacker, Spy defender_spy) {
+  UNUSED(defender_spy); // TODO: remove if using variable
+
   // TODO: Implement Attacker logic here
   move_player_in_field(field, attacker, (direction_t) DIR_RIGHT);
 }
 
 /*----------------------------------------------------------------------------*/
 
-void move_defender(Field field, Player defender) {
+void move_defender(Field field, Player defender, Spy attacker_spy) {
+  UNUSED(attacker_spy); // TODO: remove if using variable
+
   // TODO: Implement Defender logic here
   move_player_in_field(field, defender, (direction_t) DIR_LEFT);
 }
