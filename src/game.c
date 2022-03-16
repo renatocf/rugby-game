@@ -37,6 +37,12 @@ struct game {
 /*                          PRIVATE FUNCTIONS HEADERS                         */
 /*----------------------------------------------------------------------------*/
 
+Game allocate_game(
+  dimension_t field_dimension,
+  size_t max_number_spies,
+  PlayerStrategy execute_attacker_strategy,
+  PlayerStrategy execute_defender_strategy);
+
 void set_attacker_in_field(Field field, Item attacker);
 void set_defender_in_field(Field field, Item defender);
 void set_obstacles_in_field(Field field, Item obstacle);
@@ -60,21 +66,11 @@ Game new_game(
     size_t max_number_spies,
     PlayerStrategy execute_attacker_strategy,
     PlayerStrategy execute_defender_strategy) {
-  Game game = malloc(sizeof(*game));
-
-  game->field = new_field(field_dimension);
-
-  game->max_number_spies = max_number_spies;
-
-  game->execute_attacker_strategy = execute_attacker_strategy;
-  game->execute_defender_strategy = execute_defender_strategy;
-
-  game->attacker = new_item('A', true);
-  game->defender = new_item('D', true);
-  game->obstacle = new_item('X', false);
-
-  game->attacker_spy = new_spy(game->attacker);
-  game->defender_spy = new_spy(game->defender);
+  Game game = allocate_game(
+      field_dimension,
+      max_number_spies,
+      execute_attacker_strategy,
+      execute_defender_strategy);
 
   set_attacker_in_field(game->field, game->attacker);
   set_defender_in_field(game->field, game->defender);
@@ -178,6 +174,32 @@ void play_game(Game game, size_t max_turns) {
 
 /*----------------------------------------------------------------------------*/
 /*                             PRIVATE FUNCTIONS                              */
+/*----------------------------------------------------------------------------*/
+
+Game allocate_game(
+    dimension_t field_dimension,
+    size_t max_number_spies,
+    PlayerStrategy execute_attacker_strategy,
+    PlayerStrategy execute_defender_strategy) {
+  Game game = malloc(sizeof(*game));
+
+  game->field = new_field(field_dimension);
+
+  game->max_number_spies = max_number_spies;
+
+  game->execute_attacker_strategy = execute_attacker_strategy;
+  game->execute_defender_strategy = execute_defender_strategy;
+
+  game->attacker = new_item('A', true);
+  game->defender = new_item('D', true);
+  game->obstacle = new_item('X', false);
+
+  game->attacker_spy = new_spy(game->attacker);
+  game->defender_spy = new_spy(game->defender);
+
+  return game;
+}
+
 /*----------------------------------------------------------------------------*/
 
 void set_attacker_in_field(Field field, Item attacker) {
