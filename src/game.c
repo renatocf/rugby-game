@@ -377,7 +377,7 @@ bool has_attacker_arrived_end_field(Field field, Item attacker) {
   position_t attacker_position = get_item_position(attacker);
   dimension_t field_dimension = get_field_dimension(field);
 
-  return attacker_position.j == field_dimension.width - 1;
+  return attacker_position.j == field_dimension.width - 2;
 }
 
 /*----------------------------------------------------------------------------*/
